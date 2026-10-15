@@ -1,14 +1,14 @@
 # HMM Regime-Switching ETF Portfolio Optimizer
 
-A research-grade Python framework that builds a **long-only, sector-constrained ETF portfolio** by combining
+A research-grade Python framework that builds a long-only, sector-constrained ETF portfolio by combining
 
 1. a **Hidden Markov Model (HMM)** that detects market regimes (Bull / Sideways / Bear),
 2. a **regime-conditional estimation pipeline** for expected returns and covariances (Ledoit–Wolf → Marchenko–Pastur denoising → James–Stein shrinkage),
-3. a **Joint Stochastic Programming (JSP)** optimizer that simulates thousands of future regime paths from today's regime distribution and optimizes the portfolio *across* those paths.
+3. a **Joint Stochastic Programming (JSP)** optimizer that simulates thousands of future regime paths from today's regime distribution and optimizes the portfolio across those paths.
 
 A classical alternative (one mean-variance portfolio per regime, blended by regime probabilities) is also included for comparison.
 
-> **Disclaimer.** This project is for research and educational purposes only. It is not investment advice. Outputs depend heavily on the input data, the configured priors and the model assumptions listed in [Known limitations](#known-limitations).
+> **Disclaimer.** This project is for research and educational purposes only. It is not investment advice. Outputs depend heavily on the input data, the configured priors and the model assumptions. For other consideration check the OPERATIONAL PREMISES file .
 
 ---
 
@@ -30,15 +30,13 @@ A classical alternative (one mean-variance portfolio per regime, blended by regi
 - [Outputs](#outputs)
 - [Validation and diagnostics](#validation-and-diagnostics)
 - [Known limitations](#known-limitations)
-- [Ideas for future work](#ideas-for-future-work)
 - [References](#references)
-- [License](#license)
 
 ---
 
 ## Why regime-aware optimization?
 
-Classical mean-variance optimization (Markowitz, 1952) estimates a single expected-return vector and a single covariance matrix from the whole sample. Financial markets, however, alternate between states with very different behaviour: calm uptrends, choppy sideways markets and high-volatility drawdowns. Returns, volatilities and, crucially, **correlations** change from one state to another, so a single pooled estimate is a poor description of any of them.
+Classical mean-variance optimization (Markowitz, 1952) estimates a single expected-return vector and a single covariance matrix from the whole sample. Financial markets, however, alternate between states with very different behaviour: calm uptrends, choppy sideways markets and high-volatility drawdowns. Returns, volatilities and, crucially, correlations change from one state to another, so a single pooled estimate is a poor description of any of them.
 
 This project models that structure explicitly:
 
@@ -90,9 +88,9 @@ flowchart TD
 ### 1. Data
 
 - **Source:** Yahoo Finance (adjusted close prices via `yfinance`) or an Excel file (e.g. a FactSet export). Tickers missing from the Excel file are downloaded from Yahoo.
-- **Returns:** daily **log returns**. Short gaps caused by different exchange calendars are forward-filled (up to 5 days) so that one holiday does not delete observations for all ETFs.
-- **Two histories:** the ETFs use `period_years` of data (default 5), while the **regime detector uses a much longer benchmark history** (`benchmark_period_years`, e.g. 15–20 years of a broad equity ETF). This lets the HMM observe several full market cycles even if some ETFs are young.
-- **Sample alignment:** regime labels are aligned to ETF returns **by date**, not by position, because ETFs listed on different exchanges have different trading calendars.
+- **Returns:** daily log returns. Short gaps caused by different exchange calendars are forward-filled (up to 5 days) so that one holiday does not delete observations for all ETFs.
+- **Two histories:** the ETFs use `period_years` of data (default 5), while the regime detector uses a much longer benchmark history (`benchmark_period_years`, e.g. 15–20 years of a broad equity ETF). This lets the HMM observe several full market cycles even if some ETFs are young.
+- **Sample alignment:** regime labels are aligned to ETF returns by date, not by position, because ETFs listed on different exchanges have different trading calendars.
 
 ### 2. Regime detection with an HMM ensemble
 
@@ -109,7 +107,7 @@ flowchart TD
 
 A consistency check prints the agreement between the Viterbi path and the arg-max of the ensemble posterior; a low value signals unreliable regime labelling.
 
-**Economic labelling.** HMM states are unordered, so each state is scored on mean return, volatility, persistence (share of time) and maximum drawdown measured in the benchmark's real return space. The highest "bull score" is labelled **Bull**, the highest "bear score" **Bear**, and the remaining state **Sideways/Kangaroo**.
+**Economic labelling.** HMM states are unordered, so each state is scored on mean return, volatility, persistence (share of time) and maximum drawdown measured in the benchmark's real return space. The highest "bull score" is labelled _Bull_, the highest "bear score" _Bear_, and the remaining state _Sideways/Kangaroo_.
 
 **Smoothing "today".** The starting distribution for the simulation is an exponentially weighted average of the last `regime_smoothing_window` daily posteriors (decay `regime_smoothing_decay`), which filters one-day noise.
 
@@ -132,8 +130,8 @@ c_k = C \cdot \max\!\left(1, \sqrt{60 / n_k}\right)
 $$
 
 - $\bar\mu_k$ is the annualized sample mean in regime *k*, $n_k$ the number of observations.
-- $\mu^{\text{prior}}$ is a **forward-looking prior per sector** set in `sector_priors` (optionally date-stamped with `prior_schedule` to avoid look-ahead).
-- The base intensity $C$ **depends on the ETF history length**: 80 (< ~1 year), 50 (< ~2 years), 35 (< ~3 years), 20 otherwise, and is never below an *N-aware floor* of $2(N-2)$ for $N$ assets.
+- $\mu^{\text{prior}}$ is a forward-looking prior per sector set in `sector_priors` (optionally date-stamped with `prior_schedule` to avoid look-ahead).
+- The base intensity $C$ depends on the ETF history length: 80 (< ~1 year), 50 (< ~2 years), 35 (< ~3 years), 20 otherwise, and is never below an *N-aware floor* of $2(N-2)$ for $N$ assets.
 
 **Safety nets.**
 
@@ -171,13 +169,13 @@ Optional terms: L1 transaction cost (`transaction_cost_bps`) and L2 turnover pen
 
 **Solver and selection.**
 
-- SLSQP with **16 starting points**: sparse Dirichlet(0.3), uniform Dirichlet(1), μ-proportional with log-normal noise, diversified Dirichlet(3) and one sector-feasible start.
-- **Nested CV:** each start is optimized on 70% of the simulated paths; the candidate with the best objective on the remaining 30% is selected.
-- A projection step enforces sector constraints if the solution violates them, and an optional **ERC blend** (`erc_blend`) mixes in an Equal-Risk-Contribution portfolio for structural diversification.
+- SLSQP with 16 starting points: sparse Dirichlet(0.3), uniform Dirichlet(1), μ-proportional with log-normal noise, diversified Dirichlet(3) and one sector-feasible start.
+- Nested CV: each start is optimized on 70% of the simulated paths; the candidate with the best objective on the remaining 30% is selected.
+- A projection step enforces sector constraints if the solution violates them, and an optional ERC blend (`erc_blend`) mixes in an Equal-Risk-Contribution portfolio for structural diversification.
 
 #### B. Classical regime-weighted mean-variance (`blend`, `current`, `stationary`, `custom`, `market_analysis`)
 
-1. One portfolio is optimized **per regime** (maximum Sharpe by default, solved with CVXPY/CLARABEL and SciPy SLSQP, keeping the better result; optional return tilt, volatility target or ERC blend).
+1. One portfolio is optimized per regime (maximum Sharpe by default, solved with CVXPY/CLARABEL and SciPy SLSQP, keeping the better result; optional return tilt, volatility target or ERC blend).
 2. The regime portfolios are combined with regime probabilities:
    - `current`: today's posterior;
    - `stationary`: long-run distribution of the transition matrix;
@@ -189,10 +187,10 @@ Optional terms: L1 transaction cost (`transaction_cost_bps`) and L2 turnover pen
 
 The console report shows two readings:
 
-- **JSP view:** expected return, volatility and Sharpe ratio of the chosen weights using the **average regime mix of the simulated paths**. This is the model's forward-looking estimate.
-- **Reporter view:** the same weights evaluated with μ and Σ averaged using the **smoothed current regime distribution** (including the momentum tilt). It is a contextual cross-check; a large gap between the two means that today's regime differs from the long-run mix.
+- **JSP view:** expected return, volatility and Sharpe ratio of the chosen weights using the average regime mix of the simulated paths. This is the model's forward-looking estimate.
+- **Reporter view:** the same weights evaluated with μ and Σ averaged using the smoothed current regime distribution (including the momentum tilt). It is a contextual cross-check; a large gap between the two means that today's regime differs from the long-run mix.
 
-It also prints the naive trailing-12-month return of the final weights next to the benchmark, explicitly flagged as **in-sample** (look-ahead).
+It also prints the naive trailing-12-month return of the final weights next to the benchmark, explicitly flagged as in-sample (look-ahead).
 
 ---
 
@@ -310,39 +308,39 @@ CONFIG = {
 - **`portfolio_allocation.csv`:** columns `Ticker`, `Sector`, `Weight_Pct`.
 - **`portfolio_dashboard.png`:** allocation pie, sector bars, current regime probabilities, regime probability history, regimes on the benchmark's cumulative return, weights by regime and the efficient-frontier panel (a separate frontier image is also saved for the JSP mode).
 
-Illustrative console excerpt (format only):
-
-```
-[STEP 3/6] Training Hidden Markov Model...
-  [CHECK] Viterbi path vs ensemble posterior agreement: 9x.x%
-[INFO] Economic regime mapping:
-       HMM state 1 -> Bull | ret=...%/d | vol=...%/d | pers=...% | maxDD=...% | n=...
-...
-[INFO] Joint Stochastic Programming (max_avg_sharpe):
-       Today's distribution (smoothed, K=21d): {'Bull': '..%', 'Sideways/Kangaroo': '..%', 'Bear': '..%'}
-       Multi-start optimization (16)... OK
-  ① JSP  (1500 simulated paths x 756 days, K=21-day smoothing):
-     Expected return (p.a.):     ..%
-     Expected volatility (p.a.): ..%
-     Sharpe ratio (rf=3.0%):      ...
-```
-
+## Example results and how to read them
+ 
+The console report ends with two readings of the same portfolio. The figures below come from one example run (1500 simulated paths × 756 days, 21-day regime smoothing, risk-free rate 3%). They depend on the data date and on the configuration, and they are model-implied expectations, not realized performance or forecasts.
+ 
+| | Expected return (p.a.) | Expected volatility (p.a.) | Sharpe ratio |
+|---|---|---|---|
+| **① JSP** (forward-looking, average regime mix of the simulated paths) | 11.22% | 12.31% | 0.668 |
+| **② Reporter** (today's smoothed regime distribution, context only) | 13.40% | 9.37% | 1.109 |
+| Δ Reporter vs JSP | +2.18 pp | −2.94 pp | +0.441 |
+ 
+**What the two views mean**
+ 
+- **JSP is the primary estimate.** It averages the regime parameters over the regime mix that the Markov chain is expected to visit during the next 756 trading days, starting from today's distribution and drifting toward the long-run mix. A Sharpe ratio of about 0.67 is a plausible order of magnitude for a diversified, long-only, multi-asset ETF portfolio. A value well above 1.5 would be a warning sign of over-optimistic inputs rather than a success.
+- **Reporter is a conditional snapshot.** It uses the same weights but weights each regime's μ and Σ by *today's* smoothed regime probabilities. If today's regime is calmer and stronger than the long-run average, it shows higher return and lower volatility than the JSP, as in this run. It describes the short-term outlook if the current regime persisted, not the multi-year expectation.
+- **Reading the gap.** The +2.18 pp return gap and −2.94 pp volatility gap indicate that the current regime is more favourable than the long-run mix assumed by the JSP. Both views use the same regime parameters (including the optional momentum tilt), so the difference is mainly due to the regime mix, not to the tilt. A large gap is a signal that the portfolio is exposed to a regime change: the JSP view is the one to rely on for the strategic horizon.
+- **Consistency check.** Sharpe = (return − r_f) / volatility holds for both rows: (11.22 − 3.0) / 12.31 ≈ 0.668 and (13.40 − 3.0) / 9.37 ≈ 1.11.
+  
 ---
 
 ## Validation and diagnostics
 
 - **`validate_config()`** (automatic): duplicate tickers, tickers without sector, sectors without a prior, constraints on unknown sectors, infeasible per-asset or per-sector bounds, `return_tilt` range.
-- **HMM quality** (`run_hmm_validation`): train/test log-likelihood per observation and its gap, silhouette score of the regimes in feature space, and the number of observations per regime.
+- **HMM quality** (run_hmm_validation): train/test log-likelihood per observation and its gap, silhouette score of the regimes in feature space, and the number of observations per regime.
 - **Posterior/Viterbi agreement:** printed after every fit.
-- **Walk-forward proxy** (`run_walkforward`): rolling or expanding windows with an embargo (`oos_gap_days`) between training and test, explicit transaction costs, and metrics (annualized return and volatility, Sharpe, Sortino, maximum drawdown, Calmar, VaR/CVaR) compared with the benchmark. See the limitation below: it does not re-fit the HMM or the JSP.
+- **Walk-forward proxy** (run_walkforward): rolling or expanding windows with an embargo (`oos_gap_days`) between training and test, explicit transaction costs, and metrics (annualized return and volatility, Sharpe, Sortino, maximum drawdown, Calmar, VaR/CVaR) compared with the benchmark. See the limitation below: it does not re-fit the HMM or the JSP.
 
 ---
 
 ## Known limitations
 
-Being explicit about what the model does **not** do is part of using it responsibly.
+Being explicit about what the model does NOT do is part of using it responsibly.
 
-1. **Short ETF histories.** The ETF sample is the *intersection* of all ETF histories, so the youngest ETF sets the length. Regime-conditional estimates then rest on a few dozen to a few hundred days and rely on shrinkage and priors; **the sector priors are subjective inputs that materially affect the result**.
+1. **Short ETF histories.** The ETF sample is the intersection of all ETF histories, so the youngest ETF sets the length. Regime-conditional estimates then rest on a few dozen to a few hundred days and rely on shrinkage and priors; the sector priors are subjective inputs that materially affect the result.
 2. **JSP objective and Monte-Carlo noise.** For `jsp` (max average Sharpe), the objective depends on the simulated paths only through their *average* regime occupation, so the extra paths mostly add sampling noise. The VaR/CVaR objectives do use path dispersion. A per-path Sharpe objective would exploit scenario dispersion more fully.
 3. **Walk-forward is a proxy.** Each window re-estimates a James–Stein max-Sharpe portfolio; the HMM regimes and the JSP are not re-fitted per window, so the backtest does not validate the full model.
 4. **In-sample regime history.** The HMM is trained on the whole benchmark history; historical regime labels and regime-conditional estimates are therefore in-sample. The posterior for the last observation is equivalent to the filtered probability, so *today's* regime reading uses no future data, but historical plots do.
@@ -354,16 +352,6 @@ Being explicit about what the model does **not** do is part of using it responsi
 
 ---
 
-## Ideas for future work
-
-- Re-fit the HMM and run the JSP inside each walk-forward window for a full out-of-sample test.
-- Per-path Sharpe or true CVaR (Rockafellar–Uryasev) objectives over simulated *return* paths, not only regime paths.
-- Filtered (Hamilton) probabilities for all historical regime plots and backtests.
-- Student-t or skewed emissions, or a Markov-switching factor model for the ETFs.
-- Add the mixture-variance term to the reported volatility.
-- Unit tests and a synthetic-data test suite for CI.
-
----
 
 ## References
 
@@ -378,8 +366,5 @@ Being explicit about what the model does **not** do is part of using it responsi
 - Rockafellar, R. T. & Uryasev, S. (2000). *Optimization of Conditional Value-at-Risk.* Journal of Risk.
 - Wang, J., Zhang, T. et al. (2020). Regime-switching portfolio optimization with HMMs, *Journal of Risk and Financial Management* — please verify the exact citation before publishing.
 
----
 
-## License
 
-Add a license of your choice (e.g. MIT) in a `LICENSE` file before publishing.
