@@ -364,7 +364,7 @@ Being explicit about what the model does NOT do is part of using it responsibly.
 - Jegadeesh, N. & Titman, S. (1993). *Returns to Buying Winners and Selling Losers.* Journal of Finance.
 - Maillard, S., Roncalli, T. & Teïletche, J. (2010). *The Properties of Equally Weighted Risk Contribution Portfolios.* Journal of Portfolio Management.
 - Rockafellar, R. T. & Uryasev, S. (2000). *Optimization of Conditional Value-at-Risk.* Journal of Risk.
-- Wang, J., Zhang, T. et al. (2020). Regime-switching portfolio optimization with HMMs, *Journal of Risk and Financial Management* — please verify the exact citation before publishing.
+- Wang, J., Zhang, T. et al. (2020). Regime-switching portfolio optimization with HMMs, *Journal of Risk and Financial Management* 
 
 
 
