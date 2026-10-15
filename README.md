@@ -28,6 +28,7 @@ A classical alternative (one mean-variance portfolio per regime, blended by regi
 - [Quick start](#quick-start)
 - [Configuration reference](#configuration-reference)
 - [Outputs](#outputs)
+- [Example results and how to read them](#example-results-and-how-to-read-them)
 - [Validation and diagnostics](#validation-and-diagnostics)
 - [Known limitations](#known-limitations)
 - [References](#references)
