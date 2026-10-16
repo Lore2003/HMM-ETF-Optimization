@@ -349,7 +349,7 @@ Being explicit about what the model does NOT do is part of using it responsibly.
 6. **Momentum overlaps with sample means.** Past returns already enter the regime sample means, especially with short histories; the momentum tilt can partly double-count that signal.
 7. **Distributional assumptions.** Gaussian emissions in the HMM, Gaussian VaR/CVaR in the objectives, and i.i.d. returns within a regime.
 8. **Some constants are fixed in code**, e.g. the 3% risk-free rate used in the μ-clipping ceiling and in the walk-forward metrics.
-9. **Data quality.** Yahoo Finance tickers can change or disappear; always verify tickers before running.
+9. **Data quality.** Yahoo Finance tickers can change or disappear; always verify tickers before running. If you can use always professional data providers such as Bloomberg, FACTSET or LSEG.
 
 ---
 
