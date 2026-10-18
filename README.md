@@ -314,22 +314,6 @@ CONFIG = {
 - **`portfolio_allocation.csv`:** columns `Ticker`, `Sector`, `Weight_Pct`.
 - **`portfolio_dashboard.png`:** allocation pie, sector bars, current regime probabilities, regime probability history, regimes on the benchmark's cumulative return, weights by regime and the efficient-frontier panel (a separate frontier image is also saved for the JSP mode).
 
-Illustrative console excerpt (format only):
-
-```
-[STEP 3/6] Training Hidden Markov Model...
-  [CHECK] Viterbi path vs ensemble posterior agreement: 9x.x%
-[INFO] Economic regime mapping:
-       HMM state 1 -> Bull | ret=...%/d | vol=...%/d | pers=...% | maxDD=...% | n=...
-...
-[INFO] Joint Stochastic Programming (max_avg_sharpe):
-       Today's distribution (smoothed, K=21d): {'Bull': '..%', 'Sideways/Kangaroo': '..%', 'Bear': '..%'}
-       Multi-start optimization (16)... OK
-  ① JSP  (1500 simulated paths x 756 days, K=21-day smoothing):
-     Expected return (p.a.):     ..%
-     Expected volatility (p.a.): ..%
-     Sharpe ratio (rf=3.0%):      ...
-```
 
 ---
 
@@ -339,9 +323,9 @@ The console report ends with two readings of the same portfolio. Fill in the tab
 
 | | Expected return (p.a.) | Expected volatility (p.a.) | Sharpe ratio |
 |---|---|---|---|
-| **① JSP** (forward-looking, average regime mix of the simulated paths) | `x.xx%` | `x.xx%` | `x.xxx` |
-| **② Reporter** (today's smoothed regime distribution, context only) | `x.xx%` | `x.xx%` | `x.xxx` |
-| Δ Reporter vs JSP | `± x.xx pp` | `± x.xx pp` | `± x.xxx` |
+| **JSP** (forward-looking, average regime mix of the simulated paths) | `12.51%` | `11.80%` | `0.806` |
+| **Reporter** (today's smoothed regime distribution, context only) | `15.24%` | `8.43%` | `1.451` |
+| Δ Reporter vs JSP | `+2.73 pp` | `+3.37 pp` | `+0.645` |
 
 **What the two views mean**
 
@@ -382,23 +366,12 @@ Being explicit about what the model does **not** do is part of using it responsi
 6. **Momentum overlaps with sample means.** Past returns already enter the regime sample means, especially with short histories; the momentum tilt can partly double-count that signal.
 7. **Distributional assumptions.** Gaussian emissions in the HMM, Gaussian VaR/CVaR in the objectives, and i.i.d. returns within a regime.
 8. **Mixed quote currencies.** Tickers listed in London (`.L`) can be quoted in GBP, GBX or USD and are mixed with euro-listed ETFs. Returns are not converted to a common currency, so FX moves end up inside returns and correlations; `validate_config()` warns about this.
-9. **Log-return means versus arithmetic priors.** Regime means are annualised means of *log* returns, while the sector priors are expected *arithmetic* returns (the gap is about σ²/2 per year: ~1% for a 15%-volatility ETF, ~4% for a 30%-volatility one).
-10. **Fixed modelling constants**, e.g. the Sharpe ceiling of 1.8 and the 20% absolute cap used to clip μ, and the 15-observation minimum per regime.
-11. **Constraint-driven solutions.** With tight per-sector bounds the optimum often sits on those bounds, so sector limits and sector priors matter at least as much as the estimated regime parameters.
-12. **Data quality.** Yahoo Finance tickers can change or disappear; always verify tickers before running.
+9. **Fixed modelling constants**, e.g. the Sharpe ceiling of 1.8 and the 20% absolute cap used to clip μ, and the 15-observation minimum per regime.
+10. **Constraint-driven solutions.** With tight per-sector bounds the optimum often sits on those bounds, so sector limits and sector priors matter at least as much as the estimated regime parameters.
+11. **Data quality.** Yahoo Finance tickers can change or disappear; always verify tickers before running.
 
 ---
 
-## Ideas for future work
-
-- Re-fit the HMM and run the JSP inside each walk-forward window for a full out-of-sample test.
-- Per-path Sharpe or true CVaR (Rockafellar–Uryasev) objectives over simulated *return* paths, not only regime paths.
-- Filtered (Hamilton) probabilities for all historical regime plots and backtests.
-- Student-t or skewed emissions, or a Markov-switching factor model for the ETFs.
-- Add the mixture-variance term to the reported volatility.
-- Unit tests and a synthetic-data test suite for CI.
-
----
 
 ## References
 
@@ -411,7 +384,7 @@ Being explicit about what the model does **not** do is part of using it responsi
 - Jegadeesh, N. & Titman, S. (1993). *Returns to Buying Winners and Selling Losers.* Journal of Finance.
 - Maillard, S., Roncalli, T. & Teïletche, J. (2010). *The Properties of Equally Weighted Risk Contribution Portfolios.* Journal of Portfolio Management.
 - Rockafellar, R. T. & Uryasev, S. (2000). *Optimization of Conditional Value-at-Risk.* Journal of Risk.
-- Wang, J., Zhang, T. et al. (2020). Regime-switching portfolio optimization with HMMs, *Journal of Risk and Financial Management* — please verify the exact citation before publishing.
+- Wang, J., Zhang, T. et al. (2020). Regime-switching portfolio optimization with HMMs, *Journal of Risk and Financial Management*
 
 ---
 
